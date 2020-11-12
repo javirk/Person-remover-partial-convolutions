@@ -6,14 +6,13 @@ import torch.nn.functional as F
 from torchvision import models
 
 '''
-CODE FROM https://github.com/naoto0804/pytorch-inpainting-with-partial-conv
+CODE BASED ON https://github.com/naoto0804/pytorch-inpainting-with-partial-conv
 '''
 
 def weights_init(init_type='gaussian'):
     def init_fun(m):
         classname = m.__class__.__name__
-        if (classname.find('Conv') == 0 or classname.find(
-                'Linear') == 0) and hasattr(m, 'weight'):
+        if (classname.find('Conv') == 0 or classname.find('Linear') == 0) and hasattr(m, 'weight'):
             if init_type == 'gaussian':
                 nn.init.normal_(m.weight, 0.0, 0.02)
             elif init_type == 'xavier':
@@ -25,7 +24,7 @@ def weights_init(init_type='gaussian'):
             elif init_type == 'default':
                 pass
             else:
-                assert 0, "Unsupported initialization: {}".format(init_type)
+                assert 0, f'Unsupported initialization: {init_type}'
             if hasattr(m, 'bias') and m.bias is not None:
                 nn.init.constant_(m.bias, 0.0)
 
@@ -111,8 +110,8 @@ class PCBActiv(nn.Module):
         elif activ == 'leaky':
             self.activation = nn.LeakyReLU(negative_slope=0.2)
 
-    def forward(self, input, input_mask):
-        h, h_mask = self.conv(input, input_mask)
+    def forward(self, input_im, input_mask):
+        h, h_mask = self.conv(input_im, input_mask)
         if hasattr(self, 'bn'):
             h = self.bn(h)
         if hasattr(self, 'activation'):
@@ -121,9 +120,9 @@ class PCBActiv(nn.Module):
 
 
 class PConvUNet(nn.Module):
-    def __init__(self, layer_size=7, input_channels=3, upsampling_mode='nearest'):
+    def __init__(self, layer_size=7, input_channels=3, upsampling_mode='nearest', freeze_enc_bn=False):
         super().__init__()
-        self.freeze_enc_bn = False
+        self.freeze_enc_bn = freeze_enc_bn
         self.upsampling_mode = upsampling_mode
         self.layer_size = layer_size
         self.enc_1 = PCBActiv(input_channels, 64, bn=False, sample='down-7')
@@ -142,11 +141,11 @@ class PConvUNet(nn.Module):
         self.dec_2 = PCBActiv(128 + 64, 64, activ='leaky')
         self.dec_1 = PCBActiv(64 + input_channels, input_channels, bn=False, activ=None, conv_bias=True)
 
-    def forward(self, input, input_mask):
+    def forward(self, input_im, input_mask):
         h_dict = dict()  # for the output of enc_N
         h_mask_dict = dict()  # for the output of enc_N
 
-        h_dict['h_0'], h_mask_dict['h_0'] = input, input_mask
+        h_dict['h_0'], h_mask_dict['h_0'] = input_im, input_mask
 
         h_key_prev = 'h_0'
         for i in range(1, self.layer_size + 1):
@@ -185,21 +184,3 @@ class PConvUNet(nn.Module):
             for name, module in self.named_modules():
                 if isinstance(module, nn.BatchNorm2d) and 'enc' in name:
                     module.eval()
-
-if __name__ == '__main__':
-    size = (1, 3, 5, 5)
-    input = torch.ones(size)
-    input_mask = torch.ones(size)
-    input_mask[:, :, 2:, :][:, :, :, 2:] = 0
-
-    conv = PartialConv(3, 3, 3, 1, 1)
-    l1 = nn.L1Loss()
-    input.requires_grad = True
-
-    output, output_mask = conv(input, input_mask)
-    loss = l1(output, torch.randn(1, 3, 5, 5))
-    loss.backward()
-
-    assert (torch.sum(input.grad != input.grad).item() == 0)
-    assert (torch.sum(torch.isnan(conv.input_conv.weight.grad)).item() == 0)
-    assert (torch.sum(torch.isnan(conv.input_conv.bias.grad)).item() == 0)

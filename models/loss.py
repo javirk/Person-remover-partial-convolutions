@@ -13,20 +13,13 @@ def gram_matrix(feat):
     return gram
 
 
-def total_variation_loss_old(image):
-    # shift one pixel and get difference (for both x and y direction)
-    loss = torch.mean(torch.abs(image[:, :, :, :-1] - image[:, :, :, 1:])) + \
-           torch.mean(torch.abs(image[:, :, :-1, :] - image[:, :, 1:, :]))
-    return loss
-
-
 def dilation_holes(hole_mask):
     b, ch, h, w = hole_mask.shape
     dilation_conv = nn.Conv2d(ch, ch, 3, padding=1, bias=False).to(device)
     torch.nn.init.constant_(dilation_conv.weight, 1.0)
     with torch.no_grad():
         output_mask = dilation_conv(hole_mask)
-    updated_holes = output_mask != 0
+    updated_holes = (output_mask != 0)
     return updated_holes.float()
 
 
@@ -46,23 +39,16 @@ class InpaintingLoss(nn.Module):
         self.l1 = nn.L1Loss()
         self.extractor = extractor
 
-    def forward(self, input, mask, output, gt):
+    def forward(self, input_im, mask, output, gt):
         loss_dict = {}
-        output_comp = mask * input + (1 - mask) * output
+        output_comp = mask * input_im + (1 - mask) * output
 
         loss_dict['hole'] = self.l1((1 - mask) * output, (1 - mask) * gt)
         loss_dict['valid'] = self.l1(mask * output, mask * gt)
 
-        if output.shape[1] == 3:
-            feat_output_comp = self.extractor(output_comp)
-            feat_output = self.extractor(output)
-            feat_gt = self.extractor(gt)
-        elif output.shape[1] == 1:
-            feat_output_comp = self.extractor(torch.cat([output_comp] * 3, 1))
-            feat_output = self.extractor(torch.cat([output] * 3, 1))
-            feat_gt = self.extractor(torch.cat([gt] * 3, 1))
-        else:
-            raise ValueError('only gray an')
+        feat_output_comp = self.extractor(output_comp)
+        feat_output = self.extractor(output)
+        feat_gt = self.extractor(gt)
 
         loss_dict['prc'] = 0.0
         for i in range(3):
@@ -77,3 +63,11 @@ class InpaintingLoss(nn.Module):
         loss_dict['tv'] = total_variation_loss(output_comp, mask)
 
         return loss_dict
+
+    @staticmethod
+    def calculate_total_loss(loss_dict, lambda_dict):
+        loss = 0.0
+        for key, coef in lambda_dict.items():
+            value = coef * loss_dict[key]
+            loss += value
+        return loss
