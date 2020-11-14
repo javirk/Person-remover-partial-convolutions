@@ -45,9 +45,9 @@ def main():
 
     model = PConvUNet(input_channels=input_channels)
     model.train()
-    if torch.cuda.device_count() > 1:
-        print('We will use', torch.cuda.device_count(), 'GPUs')
-        model = nn.DataParallel(model, device_ids=list(range(torch.cuda.device_count())))
+    print('We will use', torch.cuda.device_count(), 'GPUs')
+    model = nn.DataParallel(model, device_ids=list(range(torch.cuda.device_count())))
+    model.to(device)
 
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LR)
     criterion = InpaintingLoss(VGG16FeatureExtractor()).to(device)
@@ -69,17 +69,26 @@ def main():
                 n_iter = epoch * set_size // BATCH_SIZE + i + 1
                 write_loss_tb(writer, 'train', loss_dict, LAMBDA_DICT, n_iter)
 
-                output_com = image + (1 - mask) * output
-                writer.add_image('train/original', change_range(torchvision.utils.make_grid(image_gt), 0, 1), n_iter)
-                writer.add_image('train/output', change_range(torchvision.utils.make_grid(output_com), 0, 1), n_iter)
+                if (i + 1) % (writing_freq * 2) == 0:
+                    output_com = image + (1 - mask) * output.detach()
+                    output_com = output_com.cpu()
+                    # writer.add_image('train/original', change_range(torchvision.utils.make_grid(image_gt), 0, 1),
+                    #                  n_iter)
+                    writer.add_image('train/output', change_range(torchvision.utils.make_grid(output_com), 0, 1),
+                                     n_iter)
 
-                testing_images = iter(testloader).next()
-                test_image_gt = testing_images['image'].to(device)
-                test_mask = testing_images['mask'].to(device).float()
+                    testing_images = iter(testloader).next()
+                    test_image_gt = testing_images['image'].to(device)
+                    test_mask = testing_images['mask'].to(device).float()
 
-                test_image = test_image_gt * test_mask
-                test_output, _ = model(test_image, test_mask)
-                test_output_com = test_image + (1-test_mask)*test_output
+                    test_image = test_image_gt * test_mask
+                    test_output, _ = model(test_image, test_mask)
+                    test_output_com = test_image + (1 - test_mask) * test_output.detach()
+                    test_output_com = test_output_com.cpu()
+                    # writer.add_image('test/original', change_range(torchvision.utils.make_grid(test_image_gt), 0, 1),
+                    #                  n_iter)
+                    writer.add_image('test/output', change_range(torchvision.utils.make_grid(test_output_com), 0, 1),
+                                     n_iter)
 
                 print(f'Iteration {n_iter}')
 
@@ -96,7 +105,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-b', '--batch-size',
-                        default=32,
+                        default=8,
                         type=int,
                         help='Size of the batch')
 
@@ -111,12 +120,12 @@ if __name__ == '__main__':
                         help='Initial learning rate')
 
     parser.add_argument('-w', '--write-per-epoch',
-                        default=10,
+                        default=1000,
                         type=int,
                         help='Times to write per epoch')
 
     parser.add_argument('-i', '--input-channels',
-                        default=1,
+                        default=3,
                         type=int,
                         help='Number of channels in the images')
 

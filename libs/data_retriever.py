@@ -37,7 +37,6 @@ class InpaintDataset(Dataset):
         width = image.shape[2]
         mask = self.mask_generator.sample(height=height, width=width)
         mask = np.concatenate([mask, mask, mask], axis=0) # Because it must have as many channels as the image
-        mask = mask.float()
 
         return {'image': image, 'mask': mask}
 
