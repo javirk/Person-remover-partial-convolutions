@@ -1,6 +1,7 @@
 Datasets/
-runs/
 .idea/
-.DS_Store
-models/__pycache__
-__pycache__
+**/.DS_Store
+inpainter/weights/__pycache__
+**/__pycache__
+inpainter/logs/
+inpainter/weights
