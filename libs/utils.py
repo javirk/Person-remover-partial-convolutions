@@ -17,8 +17,6 @@ def write_loss_tb(writer, name, loss_dict, lambda_dict, n_iter):
         writer.add_scalar(f'{name}/loss_{key}', value.item(), n_iter)
 
 def read_config(config_path):
-    config_path = Path(config_path)
-
     with open(str(config_path)) as file:
         config = yaml.full_load(file)
 
