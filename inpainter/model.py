@@ -13,7 +13,8 @@ import libs.utils as u
 
 class Inpainter:
     def __init__(self, mode, train_dataset=False, test_dataset=False, checkpoint_dir='', restore_parameters=False,
-                 epochs=100, lr=2e-4, batch_size=8, initial_epoch=None, writing_per_epoch=10, config_path='config.yml'):
+                 epochs=100, lr=2e-4, batch_size=8, initial_epoch=None, writing_per_epoch=10, freeze_bn=False,
+                 config_path='config.yml'):
         self.mode = mode
         self.input_channels = 3
         self.epochs = epochs
@@ -21,6 +22,7 @@ class Inpainter:
         self.checkpoint_dir = checkpoint_dir
         self.restore_parameters = restore_parameters
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.freeze_bn = freeze_bn
 
         config = u.read_config(config_path)
 
@@ -43,7 +45,7 @@ class Inpainter:
                 print(f'The model will be trained for {self.epochs} epochs and will restore last saved parameters')
                 try:
                     checkpoint = torch.load(self._retrieve_last_model())
-                    self.initial_epoch = checkpoint['epoch'] if initial_epoch is None else initial_epoch
+                    self.initial_epoch = checkpoint['epoch']
                     self.model.load_state_dict(checkpoint['model_state_dict'])
                     self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
                 except Exception as e:
@@ -56,6 +58,7 @@ class Inpainter:
                 print(f'The model will be trained for {self.epochs} epochs and will NOT restore last saved parameters')
 
             self.train_summary_writer = self.writers_tensorboard()
+            self._prepare_dirs()
         else:
             self.model.eval()
             checkpoint = torch.load(self._retrieve_last_model())
@@ -77,7 +80,7 @@ class Inpainter:
         return last_model_path
 
     def _prepare_model(self):
-        model = PConvUNet(input_channels=3)
+        model = PConvUNet(input_channels=3, freeze_enc_bn=self.freeze_bn)
         model = nn.DataParallel(model, device_ids=list(range(torch.cuda.device_count())))
         model.to(self.device)
         return model
@@ -156,3 +159,7 @@ class Inpainter:
         train_summary_writer = SummaryWriter(train_log_dir)
 
         return train_summary_writer
+
+    @staticmethod
+    def _prepare_dirs():
+        os.makedirs('inpainter/weights', exist_ok=True)
