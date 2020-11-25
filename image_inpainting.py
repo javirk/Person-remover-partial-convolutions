@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('-b', '--batch-size', default=8, type=int, help='Size of the batch')
 parser.add_argument('-e', '--epochs', default=100, type=int, help='Number of epochs')
-parser.add_argument('-lr', '--learning-rate', default=2e-4, type=float, help='Initial learning rate')
+parser.add_argument('-lr', '--learning-rate', default=5e-5, type=float, help='Initial learning rate')
 parser.add_argument('-w', '--write-per-epoch', default=10, type=int, help='Times to write per epoch')
 parser.add_argument('-train', '--training-dir', default='Datasets/Paris/paris_train_original', type=str, help='Path for training samples')
 parser.add_argument('-test', '--testing-dir', default='Datasets/Paris/paris_eval_gt', type=str, help='Path for testing samples')

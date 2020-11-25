@@ -44,7 +44,7 @@ class Inpainter:
             if self.restore_parameters:
                 print(f'The model will be trained for {self.epochs} epochs and will restore last saved parameters')
                 try:
-                    checkpoint = torch.load(self._retrieve_last_model())
+                    checkpoint = torch.load(self._retrieve_last_model(), map_location=self.device)
                     self.initial_epoch = checkpoint['epoch']
                     self.model.load_state_dict(checkpoint['model_state_dict'])
                     self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -72,6 +72,12 @@ class Inpainter:
             'optimizer_state_dict': self.optimizer.state_dict()
         }, path_checkpoint)
 
+    def _load_pretrained(self, model):
+        assert os.path.isdir(self.checkpoint_dir), 'Checkpoint_dir must be a directory.'
+        pretrained_model = os.path.join(self.checkpoint_dir, 'pretrained.pth')
+        model.load_state_dict(torch.load(pretrained_model, map_location=self.device)['model'])
+        return model
+
     def _retrieve_last_model(self):
         assert os.path.isdir(self.checkpoint_dir), 'Checkpoint_dir must be a directory.'
         files = os.listdir(self.checkpoint_dir)
@@ -81,6 +87,7 @@ class Inpainter:
 
     def _prepare_model(self):
         model = PConvUNet(input_channels=3, freeze_enc_bn=self.freeze_bn)
+        model = self._load_pretrained(model)
         model = nn.DataParallel(model, device_ids=list(range(torch.cuda.device_count())))
         model.to(self.device)
         return model

@@ -28,8 +28,8 @@ def total_variation_loss(image, mask):
     dilated_holes = dilation_holes(hole_mask)
     columns_in_Pset = dilated_holes[:, :, :, 1:] * dilated_holes[:, :, :, :-1]
     rows_in_Pset = dilated_holes[:, :, 1:, :] * dilated_holes[:, :, :-1:, :]
-    loss = torch.sum(torch.abs(columns_in_Pset * (image[:, :, :, 1:] - image[:, :, :, :-1]))) + \
-           torch.sum(torch.abs(rows_in_Pset * (image[:, :, :1:] - image[:, :, -1:, :])))
+    loss = torch.mean(torch.abs(columns_in_Pset * (image[:, :, :, 1:] - image[:, :, :, :-1]))) + \
+           torch.mean(torch.abs(rows_in_Pset * (image[:, :, :1:] - image[:, :, -1:, :])))
     return loss
 
 
