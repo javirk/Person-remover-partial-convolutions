@@ -47,7 +47,17 @@ def main(FLAGS):
                               writing_per_epoch=FLAGS.write_per_epoch, freeze_bn=FLAGS.freeze_bn, config_path=FLAGS.config_file)
         inpainter.fit()
     else:
-        print(f'{FLAGS.mode} mode not implemented yet.')
+        test_data_path = Path(__file__).parents[0].joinpath(FLAGS.testing_dir)
+
+        transform_test = transforms.Compose([transforms.Resize(FLAGS.image_size), transforms.ToTensor(),
+                                             transforms.Normalize(normalization_mean, normalization_std)])
+
+        testset = InpaintDataset(test_data_path, transform_image=transform_test)
+
+        inpainter = Inpainter(FLAGS.mode, [], testset, checkpoint_dir=FLAGS.checkpoint_dir, restore_parameters=True,
+                              batch_size=FLAGS.batch_size, config_path=FLAGS.config_file)
+
+        inpainter.test_model()
 
 
 if __name__ == '__main__':

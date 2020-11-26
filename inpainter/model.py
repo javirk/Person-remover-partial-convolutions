@@ -9,6 +9,7 @@ from time import time
 from inpainter.loss import InpaintingLoss
 from inpainter.partialconv2d import PConvUNet, VGG16FeatureExtractor
 import libs.utils as u
+import matplotlib.pyplot as plt
 
 
 class Inpainter:
@@ -27,13 +28,13 @@ class Inpainter:
         config = u.read_config(config_path)
 
         self.model = self._prepare_model()
+        self.batch_size = batch_size
 
         if self.mode == 'train':
             assert train_dataset, 'No training dataset supplied for train mode.'
             self.model.train()
-            self.batch_size = batch_size
-            self.train_loader, self.train_size = self._make_dataloader(train_dataset, self.batch_size)
-            self.test_loader, self.test_size = self._make_dataloader(test_dataset, self.batch_size)
+            self.train_loader, self.train_size = self.make_dataloader(train_dataset, self.batch_size)
+            self.test_loader, self.test_size = self.make_dataloader(test_dataset, self.batch_size)
 
             self.writing_freq = self.train_size // (writing_per_epoch * self.batch_size)
 
@@ -52,17 +53,26 @@ class Inpainter:
                     print('Error while restoring a checkpoint: ', e)
 
                     self.initial_epoch = initial_epoch if initial_epoch is not None else 0
-                    print(f'The model will be trained for {self.epochs} epochs and will NOT restore last saved parameters')
+                    print(
+                        f'The model will be trained for {self.epochs} epochs and will NOT restore last saved parameters')
             else:
                 self.initial_epoch = initial_epoch if initial_epoch is not None else 0
                 print(f'The model will be trained for {self.epochs} epochs and will NOT restore last saved parameters')
 
             self.train_summary_writer = self.writers_tensorboard()
             self._prepare_dirs()
+        elif self.mode == 'test':
+            self.test_loader, self.test_size = self.make_dataloader(test_dataset, self.batch_size)
+            self.model.eval()
+            checkpoint = torch.load(self._retrieve_last_model(), map_location=self.device)
+            self.model.load_state_dict(checkpoint['model_state_dict'])
         else:
             self.model.eval()
-            checkpoint = torch.load(self._retrieve_last_model())
+            checkpoint = torch.load(self._retrieve_last_model(), map_location=self.device)
             self.model.load_state_dict(checkpoint['model_state_dict'])
+
+    def __call__(self, input_batch, mask):
+        pass
 
     def _save_parameters(self, epoch):
         path_checkpoint = os.path.join(self.checkpoint_dir, f'model_{epoch}.tar')
@@ -81,7 +91,7 @@ class Inpainter:
     def _retrieve_last_model(self):
         assert os.path.isdir(self.checkpoint_dir), 'Checkpoint_dir must be a directory.'
         files = os.listdir(self.checkpoint_dir)
-        files = [int(x[6:-4])  for x in files if 'model' in x]  # This only leaves the number. TODO: regular expression
+        files = [int(x[6:-4]) for x in files if 'model' in x]  # This only leaves the number. TODO: regular expression
         last_model_path = os.path.join(self.checkpoint_dir, f'model_{max(files)}.tar')
         return last_model_path
 
@@ -93,7 +103,7 @@ class Inpainter:
         return model
 
     @staticmethod
-    def _make_dataloader(data, batch_size):
+    def make_dataloader(data, batch_size):
         if data:
             if isinstance(data, torch.utils.data.dataloader.DataLoader):
                 return data, len(data.dataset)
@@ -134,7 +144,9 @@ class Inpainter:
                         output_com = output_com.cpu()
                         # writer.add_image('train/original', change_range(torchvision.utils.make_grid(image_gt), 0, 1),
                         #                  n_iter)
-                        self.train_summary_writer.add_image('train/output', u.change_range(torchvision.utils.make_grid(output_com), 0, 1),
+                        self.train_summary_writer.add_image('train/output',
+                                                            u.change_range(torchvision.utils.make_grid(output_com), 0,
+                                                                           1),
                                                             n_iter)
 
                         if self.test_loader is not None:
@@ -148,7 +160,8 @@ class Inpainter:
                             test_output_com = test_output_com.cpu()
                             # writer.add_image('test/original', change_range(torchvision.utils.make_grid(test_image_gt), 0, 1),
                             #                  n_iter)
-                            self.train_summary_writer.add_image('test/output', u.change_range(torchvision.utils.make_grid(test_output_com), 0, 1), n_iter)
+                            self.train_summary_writer.add_image('test/output', u.change_range(
+                                torchvision.utils.make_grid(test_output_com), 0, 1), n_iter)
 
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -170,3 +183,37 @@ class Inpainter:
     @staticmethod
     def _prepare_dirs():
         os.makedirs('inpainter/weights', exist_ok=True)
+
+    def test_model(self):
+        for i, data in enumerate(self.test_loader):
+            images_gt, masks = data['image'].to(self.device), data['mask'].to(self.device)
+            masks = masks.float()
+            images = images_gt * masks
+            with torch.no_grad():
+                output, _ = self.model(images, masks)
+
+            self._save_images(output, masks, images_gt, 0, i * images_gt.shape[0])
+
+    def _save_images(self, images, masks, images_gt, epoch, ex):
+        try:
+            masks = masks.detach().cpu().numpy()
+            images_gt = images_gt.detach().cpu().numpy()
+            images = images.detach().cpu().numpy()
+        except:
+            pass
+
+        input_im = images_gt * masks
+        output_im = input_im + (1 - masks) * images
+
+        title = ['Input image', 'Ground truth', 'Predicted Image']
+        for i_im in range(images.shape[0]):
+            plt.figure(figsize=(15, 15))
+            display_list = [input_im[i_im], images_gt[i_im], output_im[i_im]]
+            for i in range(len(title)):
+                plt.subplot(1, 3, i + 1)
+                plt.title(title[i])
+                plt.imshow(u.channels_to_last(u.change_range(display_list[i], 0, 1)))
+                plt.axis('off')
+
+            plt.savefig(f'inpainter/output/{self.mode}/salida {epoch}_{ex + i_im}.png')
+            plt.close()

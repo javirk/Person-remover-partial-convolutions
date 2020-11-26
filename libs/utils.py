@@ -1,10 +1,17 @@
 import torch
 import argparse
 import yaml
+import numpy as np
+from PIL import Image
+from torchvision import transforms
 
 def change_range(image, output_min, output_max):
-    input_min = torch.min(image)
-    input_max = torch.max(image)
+    if type(image) == torch.Tensor:
+        input_min = torch.min(image)
+        input_max = torch.max(image)
+    else:
+        input_min = np.min(image)
+        input_max = np.max(image)
     output_image = ((image - input_min) / (input_max - input_min)) * (output_max - output_min) + output_min
     if output_max > 1:
         output_image = output_image.int()
@@ -30,3 +37,20 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+def channels_to_last(arr):
+    if type(arr) == torch.Tensor:
+        raise ValueError('Not possible to swap dimensions in torch Tensor as of yet.')
+    else:
+        return np.moveaxis(arr, 0, -1)
+
+def read_image(file):
+    image = Image.open(file)
+    preprocess = transforms.Compose([
+        transforms.Resize((256, 256)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    image = preprocess(image)
+    batch = image.unsqueeze(0)
+    return batch
