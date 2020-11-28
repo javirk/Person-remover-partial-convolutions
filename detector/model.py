@@ -24,11 +24,14 @@ class Detector:
 
         segmented_image = output.argmax(1)
         mask = self.mask_objects(segmented_image)
+        mask = mask.unsqueeze(0)
+        mask = torch.cat((mask, mask, mask), dim=1)
 
         return mask, segmented_image
 
     def mask_objects(self, segmented_image):
-        return (~np.isin(segmented_image, self.objects)).astype(int)
+        # There has to be a better way to do this. Everything in pytorch, but I don't know.
+        return torch.tensor((~np.isin(segmented_image, self.objects)), dtype=torch.float)
 
 
 if __name__ == '__main__':

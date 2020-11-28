@@ -138,6 +138,7 @@ class PConvUNet(nn.Module):
         self.dec_1 = PCBActiv(64 + input_channels, input_channels, bn=False, activ=None, conv_bias=True)
 
     def forward(self, input_im, input_mask):
+        size = input_im.shape[-2:]
         h_dict = dict()  # for the output of enc_N
         h_mask_dict = dict()  # for the output of enc_N
 
@@ -165,9 +166,20 @@ class PConvUNet(nn.Module):
             h = F.interpolate(h, scale_factor=2, mode=self.upsampling_mode)
             h_mask = F.interpolate(h_mask, scale_factor=2, mode='nearest')
 
+            # If we concat now we can face padding issues. The following lines fix that:
+            diffY = h.size()[2] - h_dict[enc_h_key].size()[2]
+            diffX = h.size()[3] - h_dict[enc_h_key].size()[3]
+            h_dict[enc_h_key] = F.pad(h_dict[enc_h_key], [diffX // 2, diffX - diffX //2,
+                                                          diffY // 2, diffY - diffY //2])
+            h_mask_dict[enc_h_key] = F.pad(h_mask_dict[enc_h_key], [diffX // 2, diffX - diffX //2,
+                                                                    diffY // 2, diffY - diffY //2])
+
             h = torch.cat([h, h_dict[enc_h_key]], dim=1)
             h_mask = torch.cat([h_mask, h_mask_dict[enc_h_key]], dim=1)
             h, h_mask = getattr(self, dec_l_key)(h, h_mask)
+
+        h = F.interpolate(h, size=size, mode='bilinear', align_corners=False)
+        h_mask = F.interpolate(h_mask, size=size, mode='bilinear', align_corners=False)
 
         return h, h_mask
 
@@ -180,3 +192,9 @@ class PConvUNet(nn.Module):
             for name, module in self.named_modules():
                 if isinstance(module, nn.BatchNorm2d) and 'enc' in name:
                     module.eval()
+
+if __name__ == '__main__':
+    m = PConvUNet(input_channels=3)
+    im = torch.rand((1, 3, 937, 937))
+    mask = torch.randint(0, 2, (1, 3, 937, 937)).float()
+    output = m(im, mask)

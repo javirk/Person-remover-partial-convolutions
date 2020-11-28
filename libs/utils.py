@@ -4,17 +4,22 @@ import yaml
 import numpy as np
 from PIL import Image
 from torchvision import transforms
+import matplotlib.pyplot as plt
+import os
 
 def change_range(image, output_min, output_max):
     if type(image) == torch.Tensor:
         input_min = torch.min(image)
         input_max = torch.max(image)
+        output_image = ((image - input_min) / (input_max - input_min)) * (output_max - output_min) + output_min
+        if output_max > 1:
+            output_image = output_image.int()
     else:
         input_min = np.min(image)
         input_max = np.max(image)
-    output_image = ((image - input_min) / (input_max - input_min)) * (output_max - output_min) + output_min
-    if output_max > 1:
-        output_image = output_image.int()
+        output_image = ((image - input_min) / (input_max - input_min)) * (output_max - output_min) + output_min
+        if output_max > 1:
+            output_image = output_image.astype(np.uint8)
     return output_image
 
 def write_loss_tb(writer, name, loss_dict, lambda_dict, n_iter):
@@ -54,3 +59,9 @@ def read_image(file):
     image = preprocess(image)
     batch = image.unsqueeze(0)
     return batch
+
+def save_batch(batch, filenames, path):
+    for im, file in zip(batch, filenames):
+        file = os.path.join(path, file)
+        im = channels_to_last(change_range(im, 0, 1))
+        plt.imsave(file, im)

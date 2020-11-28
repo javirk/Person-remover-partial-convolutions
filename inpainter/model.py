@@ -71,8 +71,11 @@ class Inpainter:
             checkpoint = torch.load(self._retrieve_last_model(), map_location=self.device)
             self.model.load_state_dict(checkpoint['model_state_dict'])
 
-    def __call__(self, input_batch, mask):
-        pass
+    def __call__(self, input_batch, mask_batch):
+        input_batch.to(self.device)
+        mask_batch.to(self.device)
+        output, _ = self.model(input_batch, mask_batch)
+        return output
 
     def _save_parameters(self, epoch):
         path_checkpoint = os.path.join(self.checkpoint_dir, f'model_{epoch}.tar')
@@ -146,8 +149,7 @@ class Inpainter:
                         #                  n_iter)
                         self.train_summary_writer.add_image('train/output',
                                                             u.change_range(torchvision.utils.make_grid(output_com), 0,
-                                                                           1),
-                                                            n_iter)
+                                                                           1), n_iter)
 
                         if self.test_loader is not None:
                             testing_images = iter(self.test_loader).next()

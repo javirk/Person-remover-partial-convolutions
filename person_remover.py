@@ -2,6 +2,9 @@ from detector.model import Detector
 from inpainter.model import Inpainter
 from libs.data_retriever import InpaintImageFolder
 import torch
+from libs.utils import save_batch, channels_to_last
+import matplotlib.pyplot as plt
+from skimage.transform import resize
 
 input_folder = 'Datasets/remove_people/'
 batch_size = 8
@@ -16,6 +19,11 @@ detector = Detector(objects)
 inpainter = Inpainter(mode='try', checkpoint_dir='inpainter/weights/')
 
 for i, data in enumerate(loader):
-    input_images = data['image']
-    mask, segmented_image = detector(input_images)
-    print('hola')
+    input_images, filenames, dimensions = data['image'], data['filename'], data['dimensions']
+    mask, _ = detector(input_images)
+    image = input_images * mask
+    output = inpainter(image, mask)
+    output_numpy = output.detach().cpu().numpy()
+    output = resize(channels_to_last(output_numpy), dimensions)
+    output_com = image + (1 - mask) * output.detach()
+    save_batch(output, filenames, 'output/')

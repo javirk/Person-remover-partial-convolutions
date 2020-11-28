@@ -53,7 +53,7 @@ class InpaintImageFolder(Dataset):
         if transform_image is None:
             normalization_mean = [0.485, 0.456, 0.406]
             normalization_std = [0.229, 0.224, 0.225]
-            self.transform_image = transforms.Compose([transforms.Resize(image_size), transforms.ToTensor(),
+            self.transform_image = transforms.Compose([transforms.ToTensor(),
                                                  transforms.Normalize(normalization_mean, normalization_std)])
         else:
             self.transform_image = transform_image
@@ -61,12 +61,13 @@ class InpaintImageFolder(Dataset):
         self.loader = self.make_dataset(self.folderpath)
 
     def __getitem__(self, item):
+        filename = self.loader[item]
         image = Image.open(self.loader[item])
         width, height = image.size
         if self.transform_image:
             image = self.transform_image(image)
 
-        return {'image': image, 'dimensions': (width, height)}
+        return {'image': image, 'dimensions': (width, height), 'filename': filename.split('/')[-1]}
 
     def __len__(self):
         return len(self.loader)
