@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from libs.utils import crop_center
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -41,6 +42,7 @@ class InpaintingLoss(nn.Module):
 
     def forward(self, input_im, mask, output, gt):
         loss_dict = {}
+        output = crop_center(output, mask.shape[-2], mask.shape[-1])
         output_comp = mask * input_im + (1 - mask) * output
 
         loss_dict['hole'] = self.l1((1 - mask) * output, (1 - mask) * gt)

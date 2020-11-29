@@ -52,7 +52,6 @@ def channels_to_last(arr):
 def read_image(file):
     image = Image.open(file)
     preprocess = transforms.Compose([
-        transforms.Resize((256, 256)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
@@ -65,3 +64,18 @@ def save_batch(batch, filenames, path):
         file = os.path.join(path, file)
         im = channels_to_last(change_range(im, 0, 1))
         plt.imsave(file, im)
+
+def crop_center(img, cropx, cropy, channels_first=True):
+    if channels_first:
+        _, _, y, x = img.shape
+        startx = x // 2 - (cropx // 2)
+        starty = y // 2 - (cropy // 2)
+        img = img[:, :, starty:starty + cropy, startx:startx + cropx]
+    else:
+        y, x, _ = img.shape
+        startx = x // 2 - (cropx // 2)
+        starty = y // 2 - (cropy // 2)
+        img = img [:, starty: starty + cropy, startx: startx + cropx, :]
+
+    return img
+

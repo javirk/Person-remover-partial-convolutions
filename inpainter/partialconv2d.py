@@ -178,8 +178,8 @@ class PConvUNet(nn.Module):
             h_mask = torch.cat([h_mask, h_mask_dict[enc_h_key]], dim=1)
             h, h_mask = getattr(self, dec_l_key)(h, h_mask)
 
-        h = F.interpolate(h, size=size, mode='bilinear', align_corners=False)
-        h_mask = F.interpolate(h_mask, size=size, mode='bilinear', align_corners=False)
+        # h = F.interpolate(h, size=size, mode='bilinear', align_corners=False)
+        # h_mask = F.interpolate(h_mask, size=size, mode='bilinear', align_corners=False)
 
         return h, h_mask
 

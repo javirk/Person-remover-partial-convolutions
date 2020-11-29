@@ -24,8 +24,8 @@ class Detector:
 
         segmented_image = output.argmax(1)
         mask = self.mask_objects(segmented_image)
-        mask = mask.unsqueeze(0)
-        mask = torch.cat((mask, mask, mask), dim=1)
+        mask = mask.unsqueeze(1).repeat(1, 3, 1, 1)
+        # mask = torch.cat((mask, mask, mask), dim=0)
 
         return mask, segmented_image
 

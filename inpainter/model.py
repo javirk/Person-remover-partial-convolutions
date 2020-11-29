@@ -143,6 +143,7 @@ class Inpainter:
                     u.write_loss_tb(self.train_summary_writer, 'train', loss_dict, self.lambda_dict, n_iter)
 
                     if (i + 1) % (self.writing_freq * 2) == 0:
+                        output = u.crop_center(output, mask.shape[-2], mask.shape[-1])
                         output_com = image + (1 - mask) * output.detach()
                         output_com = output_com.cpu()
                         # writer.add_image('train/original', change_range(torchvision.utils.make_grid(image_gt), 0, 1),
@@ -158,6 +159,7 @@ class Inpainter:
 
                             test_image = test_image_gt * test_mask
                             test_output, _ = self.model(test_image, test_mask)
+                            test_output = u.crop_center(test_output, test_mask.shape[-2], test_mask.shape[-1])
                             test_output_com = test_image + (1 - test_mask) * test_output.detach()
                             test_output_com = test_output_com.cpu()
                             # writer.add_image('test/original', change_range(torchvision.utils.make_grid(test_image_gt), 0, 1),
