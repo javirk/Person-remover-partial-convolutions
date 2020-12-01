@@ -49,14 +49,16 @@ def channels_to_last(arr):
     else:
         return np.moveaxis(arr, 0, -1)
 
-def read_image(file):
+def read_image(file, device='cpu'):
     image = Image.open(file)
+    image = image.convert("RGB")
     preprocess = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     image = preprocess(image)
     batch = image.unsqueeze(0)
+    batch = batch.to(device)
     return batch
 
 def save_batch(batch, filenames, path):

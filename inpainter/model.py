@@ -74,7 +74,8 @@ class Inpainter:
     def __call__(self, input_batch, mask_batch):
         input_batch.to(self.device)
         mask_batch.to(self.device)
-        output, _ = self.model(input_batch, mask_batch)
+        with torch.no_grad():
+            output, _ = self.model(input_batch, mask_batch)
         return output
 
     def _save_parameters(self, epoch):
