@@ -5,6 +5,6 @@ inpainter/weights/__pycache__
 **/__pycache__
 inpainter/logs/
 inpainter/weights
-models/
+models/*
 inpainter/output/
 *.jpg
