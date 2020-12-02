@@ -2,7 +2,6 @@ import torch
 import torchvision
 from torchvision import transforms
 import numpy as np
-from detector.human_segmentation.models import UNet
 import torch.nn.functional as F
 
 class Detector:
@@ -18,16 +17,7 @@ class Detector:
             self.model = torchvision.models.segmentation.deeplabv3_resnet101(pretrained=True)
         else:
             print('Unet model. Only people will be extracted.')
-            self.name = 'unet'
-            self.objects = None
-            self.model = UNet(
-                backbone="mobilenetv2",
-                num_classes=2,
-                pretrained_backbone=None
-            )
-            trained_dict = torch.load('./models/UNet_MobileNetV2.pth', map_location=self.device)['state_dict']
-            self.model.load_state_dict(trained_dict, strict=False)
-            self.model.eval()
+            pass
 
         self.model.to(self.device)
         self.model.eval()
@@ -72,7 +62,7 @@ class Detector:
 
 if __name__ == '__main__':
     from PIL import Image
-
+    from segmentation_models_pytorch.encoders import get_preprocessing_fn
     model = Detector('otro', names_path='./coco.names')
 
     image = Image.open('../Datasets/remove_people/2.png')
