@@ -4,7 +4,8 @@ Datasets/
 inpainter/weights/__pycache__
 **/__pycache__
 inpainter/logs/
-inpainter/weights
 models/*
 inpainter/output/
 *.jpg
+*.pth
+*.tar

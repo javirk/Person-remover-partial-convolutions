@@ -16,7 +16,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 # loader, _ = Inpainter.make_dataloader(files, batch_size)
 
 # Prepare models
-detector = Detector('unet')
+detector = Detector('otro')
 inpainter = Inpainter(mode='try', checkpoint_dir='inpainter/weights/')
 
 for file in os.listdir(input_folder):

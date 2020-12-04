@@ -3,21 +3,40 @@ import torchvision
 from torchvision import transforms
 import numpy as np
 import torch.nn.functional as F
+from mit_semseg.config import cfg
+from mit_semseg.dataset import TestDataset
+from mit_semseg.models import ModelBuilder, SegmentationModule
+from pathlib import Path
 
 class Detector:
-    def __init__(self, name, objects=['person'], names_path='detector/coco.names', threshold=0.5):
-        self.class_names = [c.strip() for c in open(names_path).readlines()]
+    def __init__(self, name, object_names=['person'], threshold=0.5):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.threshold = threshold
         if name == 'deeplab':
             self.name = 'deeplab'
-            self.objects = [self.class_names.index(x) for x in objects if x in self.class_names]
-            object_names = [self.class_names[x] for x in self.objects]
+            names_path = Path(__file__).parents[0].joinpath('coco.names')
+            self.class_names = [c.strip() for c in open(names_path).readlines()]
+            self.objects = [self.class_names.index(x) for x in object_names if x in self.class_names]
             print(f'Deeplab model. {"-, ".join(object_names)} will be extracted')
             self.model = torchvision.models.segmentation.deeplabv3_resnet101(pretrained=True)
         else:
-            print('Unet model. Only people will be extracted.')
-            pass
+            self.name = 'resnet50'
+            names_path = Path(__file__).parents[0].joinpath('resnet50.names')
+            self.class_names = [c.strip() for c in open(names_path).readlines()]
+            self.objects = [self.class_names.index(x) for x in object_names if x in self.class_names] # TODO: list is longer. Make it capable to ingest all names
+            print(f'Resnet50 model. {"-, ".join(object_names)} will be extracted')
+            net_encoder = ModelBuilder.build_encoder(
+                arch='resnet50dilated',
+                fc_dim=2048,
+                weights=str(Path(__file__).parents[0].joinpath('weights', 'encoder_epoch_20.pth')))
+            net_decoder = ModelBuilder.build_decoder(
+                arch='ppm_deepsup',
+                fc_dim=2048,
+                num_class=150,
+                weights=str(Path(__file__).parents[0].joinpath('weights', 'decoder_epoch_20.pth')),
+                use_softmax=True)
+            crit = torch.nn.NLLLoss(ignore_index=-1)
+            self.model = SegmentationModule(net_encoder, net_decoder, crit)
 
         self.model.to(self.device)
         self.model.eval()
@@ -43,16 +62,17 @@ class Detector:
         return mask
 
     def run_unet(self, input_batch):
-        dimensions = input_batch.shape[-2:]
-        input_batch = input_batch.to(self.device)
-        input_batch = F.interpolate(input_batch, size=(640, 640), mode='bilinear')
+        singleton_batch = {'img_data': input_batch.to(self.device)}
+        output_size = input_batch.shape[2:]
         with torch.no_grad():
-            output = self.model(input_batch)
+            scores = self.model(singleton_batch, segSize=output_size)
 
-        mask = F.interpolate(output, size=dimensions, mode='bilinear', align_corners=True)
-        mask = F.softmax(mask, dim=1)
-        mask = mask[:, 0, ...]
-        mask = mask.repeat(1, 3, 1, 1).float()
+        # Output values in this case are already probabilities.
+        scores = scores > self.threshold
+        scores = torch.sum(scores[:, self.objects, ...], dim=1)
+        scores = (scores < 1)
+        mask = scores.unsqueeze(1).repeat(1, 3, 1, 1).float()
+
         return mask
 
     def mask_objects(self, segmented_image):
@@ -63,7 +83,7 @@ class Detector:
 if __name__ == '__main__':
     from PIL import Image
     from segmentation_models_pytorch.encoders import get_preprocessing_fn
-    model = Detector('otro', names_path='./coco.names')
+    model = Detector('otro')
 
     image = Image.open('../Datasets/remove_people/2.png')
     dim = image.size
