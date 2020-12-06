@@ -14,13 +14,14 @@ parser.add_argument('-w', '--write-per-epoch', default=10, type=int, help='Times
 parser.add_argument('-train', '--training-dir', default='Datasets/Paris/paris_train_original', type=str, help='Path for training samples')
 parser.add_argument('-test', '--testing-dir', default='Datasets/Paris/paris_eval_gt', type=str, help='Path for testing samples')
 parser.add_argument('-test-samples', '--test-samples', default=2, type=int, help='Number of generated samples for testing')
-parser.add_argument('-s', '--image-size', default=256, type=int, help='Size of the images (squared)')
+parser.add_argument('-s', '--image-size', default=400, type=int, help='Size of the images (squared)')
 parser.add_argument('-r', '--restore-check', default=True, type=str2bool, help='Restore last checkpoint in folder --checkpoint')
 parser.add_argument('-c', '--checkpoint-dir', default='inpainter/weights', help='Checkpoint directory')
 parser.add_argument('-m', '--mode', default='test', help='Mode: train or test')
 parser.add_argument('-ie', '--initial-epoch', default=0, type=int, help='Initial epoch')
 parser.add_argument('-config', '--config_file', default='config.yml', type=str, help='Path for config file')
 parser.add_argument('-f', '--freeze-bn', type=str2bool, nargs='?', const=True, default=False, help='Freeze BN while training')
+parser.add_argument('-po', '--pretrained-outside', type=str2bool, nargs='?', const=True, default=False, help='Take the pretrained model from github')
 
 def main(FLAGS):
     print('Parameters\n')
@@ -44,7 +45,8 @@ def main(FLAGS):
 
         inpainter = Inpainter(FLAGS.mode, trainset, testset, checkpoint_dir=FLAGS.checkpoint_dir, restore_parameters=FLAGS.restore_check,
                               epochs=FLAGS.epochs, lr=FLAGS.learning_rate, batch_size=FLAGS.batch_size, initial_epoch=FLAGS.initial_epoch,
-                              writing_per_epoch=FLAGS.write_per_epoch, freeze_bn=FLAGS.freeze_bn, config_path=FLAGS.config_file)
+                              writing_per_epoch=FLAGS.write_per_epoch, freeze_bn=FLAGS.freeze_bn, config_path=FLAGS.config_file,
+                              outside_pretrain=FLAGS.pretrained-outside)
         inpainter.fit()
     else:
         test_data_path = Path(__file__).parents[0].joinpath(FLAGS.testing_dir)

@@ -74,10 +74,9 @@ def crop_center(img, cropx, cropy, channels_first=True):
         starty = y // 2 - (cropy // 2)
         img = img[:, :, starty:starty + cropy, startx:startx + cropx]
     else:
-        y, x, _ = img.shape
+        _, y, x, _ = img.shape
         startx = x // 2 - (cropx // 2)
         starty = y // 2 - (cropy // 2)
         img = img [:, starty: starty + cropy, startx: startx + cropx, :]
 
     return img
-

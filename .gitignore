@@ -1,7 +1,6 @@
 Datasets/
 .idea/
 **/.DS_Store
-inpainter/weights/__pycache__
 **/__pycache__
 inpainter/logs/
 models/*
@@ -9,3 +8,4 @@ inpainter/output/
 *.jpg
 *.pth
 *.tar
+*.yaml

@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 class Inpainter:
     def __init__(self, mode, train_dataset=False, test_dataset=False, checkpoint_dir='', restore_parameters=False,
                  epochs=100, lr=2e-4, batch_size=8, initial_epoch=None, writing_per_epoch=10, freeze_bn=False,
-                 config_path='config.yml'):
+                 config_path='config.yml', outside_pretrain=False):
         self.mode = mode
         self.input_channels = 3
         self.epochs = epochs
@@ -24,6 +24,7 @@ class Inpainter:
         self.restore_parameters = restore_parameters
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.freeze_bn = freeze_bn
+        self.outside_pretrain = outside_pretrain
 
         config = u.read_config(config_path)
 
@@ -72,8 +73,8 @@ class Inpainter:
             self.model.load_state_dict(checkpoint['model_state_dict'])
 
     def __call__(self, input_batch, mask_batch):
-        input_batch.to(self.device)
-        mask_batch.to(self.device)
+        # input_batch.to(self.device)
+        # mask_batch.to(self.device)
         with torch.no_grad():
             output, _ = self.model(input_batch, mask_batch)
         return output
@@ -101,7 +102,8 @@ class Inpainter:
 
     def _prepare_model(self):
         model = PConvUNet(input_channels=3, freeze_enc_bn=self.freeze_bn)
-        model = self._load_pretrained(model)
+        if self.mode == 'train' and self.outside_pretrain:
+            model = self._load_pretrained(model)
         model = nn.DataParallel(model, device_ids=list(range(torch.cuda.device_count())))
         model.to(self.device)
         return model
