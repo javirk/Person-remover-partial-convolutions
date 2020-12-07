@@ -38,7 +38,7 @@ pip install git+https://github.com/CSAILVision/semantic-segmentation-pytorch.git
 ```
 Then, download and save appropriate weights and config. Pretrained weights are available [here](http://sceneparsing.csail.mit.edu/model/pytorch/).
 They should be renamed as "encoder/decoder_"+model name. For example, to use ppm_deepsup as decoder and resnet50dilated as 
-encoder, the following files should be present under ./decoder/weights folder:
+encoder, the following files should be present under `./detector/weights` folder:
 ```
 encoder_resnet50dilated.pth
 decoder_ppm_deepsup.pth
