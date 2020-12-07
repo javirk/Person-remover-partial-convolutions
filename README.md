@@ -38,7 +38,7 @@ pip install the library by
 ```
 pip install git+https://github.com/CSAILVision/semantic-segmentation-pytorch.git@master
 ```
-Then, download and save appropriate weights and config. Pretrained weights are available [here](http://sceneparsing.csail.mit.edu/model/pytorch/).
+Then, download and save appropriate weights. Pretrained weights are available [here](http://sceneparsing.csail.mit.edu/model/pytorch/).
 They should be renamed as "encoder/decoder_"+model name either the model is for the encoder or for the decoder.
 For example, to use ppm_deepsup as decoder and resnet50dilated as encoder, the following files should be present under 
 `./detector/weights` folder:
@@ -46,9 +46,6 @@ For example, to use ppm_deepsup as decoder and resnet50dilated as encoder, the f
 encoder_resnet50dilated.pth
 decoder_ppm_deepsup.pth
 ```
-Configuration files are available in [their github repo](https://github.com/CSAILVision/semantic-segmentation-pytorch) and
-must be placed in `./detector/config` folder. For the example above, the file `ade20k-resnet50dilated-ppm_deepsup.yaml` must be
-in said folder.
 
 Download the weights for partial convolutions from [Google Drive](https://drive.google.com/file/d/12Y9OzZjw6yTPPLqhBMEnBn1r4I_83UIC/view?usp=sharing)
 and put them in `./inpainter/weights/`.
