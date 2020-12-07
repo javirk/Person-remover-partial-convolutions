@@ -37,12 +37,11 @@ class Detector:
             names_path = Path(__file__).parents[0].joinpath('ssd.names')
             self.class_names = [c.strip() for c in open(names_path).readlines()]
             self.objects = [self.class_names.index(x) for x in object_names if x in self.class_names]
-            print(f'Deeplab model. {"-, ".join(object_names)} will be extracted')
+            print(f'SSD model. {"-, ".join(object_names)} will be extracted')
 
             self.model = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_ssd', model_math='fp32')
             self.ssd_utils = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_ssd_processing_utils')
             self.run_model = self.run_ssd
-
 
         if name.lower() == 'deeplab':
             self.name = 'deeplab'

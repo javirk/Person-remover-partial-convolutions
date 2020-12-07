@@ -38,7 +38,7 @@ parser.add_argument('-ob', '--objects', nargs='+', type=str, default=['person'])
 
 
 def main(FLAGS):
-    if FLAGS.image_path == FLAGS.image_output_path:
+    if FLAGS.image_input_path == FLAGS.image_output_path:
         raise Exception('Input and output directories cannot be the same')
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -47,9 +47,9 @@ def main(FLAGS):
     detector = Detector(FLAGS.detector_model, encoder=FLAGS.encoder, decoder=FLAGS.decoder, object_names=FLAGS.objects)
     inpainter = Inpainter(mode='try', checkpoint_dir='inpainter/weights/')
 
-    for file in tqdm(os.listdir(FLAGS.image_path)):
+    for file in tqdm(os.listdir(FLAGS.image_input_path)):
         if file.lower().endswith(IMG_EXTENSIONS):
-            input_file = FLAGS.image_path + file
+            input_file = FLAGS.image_input_path + file
             image = read_image(input_file, device)
             mask = detector(image)
             torch.cuda.empty_cache()
