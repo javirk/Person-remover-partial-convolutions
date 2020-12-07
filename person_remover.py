@@ -5,15 +5,16 @@ import torch
 from libs.utils import save_batch, crop_center, read_image
 import os
 import argparse
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('-i', '--image-path',
+parser.add_argument('-i', '--image-input-path',
                     default='Datasets/remove_people/',
                     type=str,
                     help='The path to the directory where images are saved')
 
-parser.add_argument('-io', '--image-output-path',
+parser.add_argument('-o', '--image-output-path',
                     type=str,
                     default='./output/',
                     help='The path of the output photos')
@@ -46,7 +47,7 @@ def main(FLAGS):
     detector = Detector(FLAGS.detector_model, encoder=FLAGS.encoder, decoder=FLAGS.decoder, object_names=FLAGS.objects)
     inpainter = Inpainter(mode='try', checkpoint_dir='inpainter/weights/')
 
-    for file in os.listdir(FLAGS.image_path):
+    for file in tqdm(os.listdir(FLAGS.image_path)):
         if file.lower().endswith(IMG_EXTENSIONS):
             input_file = FLAGS.image_path + file
             image = read_image(input_file, device)
