@@ -8,4 +8,3 @@ inpainter/output/
 *.jpg
 *.pth
 *.tar
-*.yaml
