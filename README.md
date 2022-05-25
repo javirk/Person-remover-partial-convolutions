@@ -1,5 +1,9 @@
 # Person Remover v2
 
+
+[Demo and Docker image on Replicate](https://replicate.com/user/repo)
+<a href="https://replicate.com/{USER}/{MODEL}"><img src="https://replicate.com/{USER}/{MODEL}/badge"></a>
+
 Would you like to travel to a touristic spot and yet appear alone in the photos? 
 
 _Person remover_ is a project that uses partial convolutions to remove people or other objects from
@@ -10,7 +14,6 @@ have been used.
 This project is capable of removing objects in images and video.
 
 Python 3.7 and Pytorch 1.7.0 a have been used in this project.
-
 
 ## How does it work?
 
